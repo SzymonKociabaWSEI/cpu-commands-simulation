@@ -44,6 +44,7 @@ body {
 /* Main Grid Layout */
 .main-grid {
   display: grid;
+  /* grid-template-columns: 350px 1fr 300px; */
   grid-template-columns: 350px 1fr 300px; /* Registers | Addressing/Logic | Mem/Stack */
   gap: 20px;
 }
@@ -102,7 +103,7 @@ input[type="text"]:focus { outline: 2px solid var(--accent); }
 .memory-cell.highlight { border-color: var(--accent); background: #2d2d40; }
 
 /* Buttons */
-.btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: center; justify-content: space-between; }
 button {
   background: var(--accent);
   color: white;

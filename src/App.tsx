@@ -27,6 +27,8 @@ function App() {
     BP: 0, SI: 0, DI: 0
   });
 
+  const movRegs = ['AX', 'BX', 'CX', 'DX'];
+
   const [displacement, setDisplacement] = useState<number>(0);
 
   const [memory, setMemory] = useState<MemoryCell[]>(
@@ -35,7 +37,13 @@ function App() {
 
   const [stack, setStack] = useState<number[]>([]);
 
-  const [selectedReg, setSelectedReg] = useState<keyof Registers>('AX');
+  const [movXchgValue, setMovXchgValue] = useState<number>(0); 
+
+  const [selectedMovSourceReg, setSelectedMovSourceReg] = useState<keyof Registers>('AX');
+  const [selectedMovTargetReg, setSelectedMovTargetReg] = useState<keyof Registers>('BX');
+  const [selectedXchgSourceReg, setSelectedXchgSourceReg] = useState<keyof Registers>('AX');
+  const [selectedXchgTargetReg, setSelectedXchgTargetReg] = useState<keyof Registers>('BX');
+  const [selectedStackSourceReg, setSelectedStackSourceReg] = useState<keyof Registers>('AX');
   
   const [logs, setLogs] = useState<string[]>(["Symulator gotowy."]);
 
@@ -56,9 +64,8 @@ function App() {
     setRegs(prev => ({ ...prev, [key]: parseHex(value) }));
   };
 
-
   const executeMovRegToReg = (target: keyof Registers, source: keyof Registers) => {
-    setRegs(prev => ({ ...prev, [target]: prev[source] }));
+    setRegs(prev => ({ ...prev, [target]: prev[source], [source]: 0 }));
     log(`MOV ${target}, ${source} (Val: ${toHex(regs[source])})`);
   };
 
@@ -91,7 +98,8 @@ function App() {
 
   const executePush = (reg: keyof Registers) => {
     setStack(prev => [...prev, regs[reg]]);
-    log(`PUSH ${reg}`);
+    setRegs(prev => ({ ...prev, [reg]: 0 }));
+    log(`PUSH ${reg}: ${toHex(regs[selectedStackSourceReg])} to Stack`);
   };
 
   return (
@@ -99,8 +107,7 @@ function App() {
       
       <div className="command-center">
         <div>
-          <h1 style={{margin: 0, fontSize: '1.5rem'}}>ASM Simulator 8086</h1>
-          <span style={{color: '#888', fontSize: '0.8rem'}}>React + TS + Vite</span>
+          <h1 style={{margin: 0, fontSize: '1.5rem'}}>8086</h1>
         </div>
         <div>
           <button className="secondary" onClick={() => {
@@ -114,8 +121,7 @@ function App() {
       <div className="main-grid">
 
         <div className="panel">
-          <h2>1. Registers</h2>
-          <p style={{fontSize: '0.8rem', color:'#aaa'}}>Możesz edytować wartości bezpośrednio (HEX).</p>
+          <h2>Registers & Addressing</h2>
           
           <h3>General Purpose</h3>
           {['AX', 'BX', 'CX', 'DX'].map((r) => (
@@ -131,7 +137,20 @@ function App() {
           ))}
 
           <h3>Addressing & Index</h3>
-          {['BP', 'SI', 'DI'].map((r) => (
+                    <div style={{background: '#2d2d2d', padding: '10px', borderRadius: '4px', marginBottom: '20px'}}>
+                        <div className="input-group">
+              <label>Offset:</label>
+              <input 
+                type="text" 
+                value={displacement.toString(16).toUpperCase()}
+                onChange={(e) => setDisplacement(parseHex(e.target.value))}
+              />
+            </div>
+            <div style={{fontSize: '0.8rem', marginTop: '10px', color: '#4ec9b0', textAlign: 'center'}}>
+              Preview (BX + Disp): <strong>{toHex((regs.BX + displacement) % 64)}</strong>
+            </div>
+          </div>
+          {['BX', 'BP', 'SI', 'DI'].map((r) => (
             <div key={r} className="input-group">
               <label>{r}</label>
               <input 
@@ -145,26 +164,9 @@ function App() {
         </div>
 
         <div className="panel">
-          <h2>2. Operations & Addressing</h2>
-          
-          <div style={{background: '#2d2d2d', padding: '10px', borderRadius: '4px', marginBottom: '20px'}}>
-            <h3>Memory Addressing Setup</h3>
-            <div className="input-group">
-              <label>Displacement (Offset):</label>
-              <input 
-                type="text" 
-                value={displacement.toString(16).toUpperCase()}
-                onChange={(e) => setDisplacement(parseHex(e.target.value))}
-              />
-            </div>
-            
-            <div style={{fontSize: '0.8rem', marginTop: '10px', color: '#4ec9b0'}}>
-              Preview (BX + Disp): <strong>{toHex((regs.BX + displacement) % 64)}</strong>
-            </div>
-          </div>
-
+          <h2>Operations</h2>
           <h3>Commands Simulation</h3>
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
+          {/* <div style={{display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px'}}>
              <label>Target/Source Reg:</label>
              <select 
                 style={{padding: '5px'}} 
@@ -173,30 +175,72 @@ function App() {
              >
                {Object.keys(regs).map(k => <option key={k} value={k}>{k}</option>)}
              </select>
+          </div> */}
+
+  
+          <div className="btn-group">
+            <label>From</label>
+            <select 
+                style={{padding: '5px'}} 
+                value={selectedMovSourceReg} 
+                onChange={(e) => setSelectedMovSourceReg(e.target.value as keyof Registers)}
+             >
+               {Object.values(movRegs).map(k => <option key={k} value={k}>{k}</option>)}
+             </select>
+            <label>To</label>
+            <select 
+                style={{padding: '5px'}} 
+                value={selectedMovTargetReg} 
+                onChange={(e) => setSelectedMovTargetReg(e.target.value as keyof Registers)}
+             >
+               {Object.values(movRegs).map(k => <option key={k} value={k}>{k}</option>)}
+             </select>
+            <button onClick={() => executeMovRegToReg(selectedMovTargetReg, selectedMovSourceReg)}>MOV</button>
           </div>
 
-          <div className="btn-group">
-            {/* 3.0 & 3.5 Buttons */}
-            <button onClick={() => executeMovRegToReg('AX', 'BX')}>MOV AX, BX (Demo)</button>
-            <button onClick={() => executeXchgRegReg('AX', 'BX')}>XCHG AX, BX</button>
+                    <div className="btn-group">
+            <label>Exchange</label>
+            <select 
+                style={{padding: '5px'}} 
+                value={selectedXchgTargetReg} 
+                onChange={(e) => setSelectedXchgTargetReg(e.target.value as keyof Registers)}
+             >
+               {Object.values(movRegs).map(k => <option key={k} value={k}>{k}</option>)}
+             </select>
+            <select 
+                style={{padding: '5px'}} 
+                value={selectedXchgSourceReg} 
+                onChange={(e) => setSelectedXchgSourceReg(e.target.value as keyof Registers)}
+             >
+               {Object.values(movRegs).map(k => <option key={k} value={k}>{k}</option>)}
+             </select>
+            <button onClick={() => executeXchgRegReg(selectedXchgTargetReg, selectedXchgSourceReg)}>XCHG</button>
           </div>
 
-          <div className="btn-group">
-             {/* 4.0 Buttons */}
+
+          {/* <div className="btn-group">
              <button onClick={() => executeMovMemToReg(selectedReg, 'BX+Disp')}>MOV {selectedReg}, [BX+Disp]</button>
              <button onClick={() => executeMovRegToMem(selectedReg)}>MOV [BX+Disp], {selectedReg}</button>
-          </div>
+          </div> */}
 
           <div className="btn-group">
-             <button onClick={() => executePush(selectedReg)} className="secondary">PUSH {selectedReg}</button>
+            <label>Stack</label>
+            <select 
+                style={{padding: '5px'}} 
+                value={selectedStackSourceReg} 
+                onChange={(e) => setSelectedStackSourceReg(e.target.value as keyof Registers)}
+             >
+               {Object.values(movRegs).map(k => <option key={k} value={k}>{k}</option>)}
+             </select>
+             <button onClick={() => executePush(selectedStackSourceReg)} className="secondary">PUSH {selectedStackSourceReg}</button>
              <button onClick={() => {
                 if(stack.length > 0) {
                    const val = stack[stack.length-1];
                    setStack(s => s.slice(0,-1));
-                   setRegs(prev => ({...prev, [selectedReg]: val}));
-                   log(`POP ${selectedReg}`);
+                   setRegs(prev => ({...prev, [selectedStackSourceReg]: val}));
+                   log(`POP ${selectedStackSourceReg}: ${toHex(regs[selectedStackSourceReg])} from Stack`);
                 }
-             }} className="secondary">POP {selectedReg}</button>
+             }} className="secondary">POP {selectedStackSourceReg}</button>
           </div>
 
           <h3>Execution Log</h3>
@@ -206,9 +250,9 @@ function App() {
         </div>
 
         <div className="panel">
-          <h2>3. Memory & Stack</h2>
+          <h2>Memory & Stack</h2>
           
-          <h3>RAM (0x00 - 0x3F)</h3>
+          {/* <h3>RAM (0x00 - 0x3F)</h3>
           <div className="memory-grid">
             {memory.map((m) => {
               // Podświetlenie komórki, na którą wskazuje BX + Disp
@@ -224,7 +268,7 @@ function App() {
                 </div>
               );
             })}
-          </div>
+          </div> */}
 
           <h3 style={{marginTop: '20px'}}>Stack (LIFO)</h3>
           <div style={{display: 'flex', flexDirection: 'column-reverse', gap: '2px', height: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px'}}>

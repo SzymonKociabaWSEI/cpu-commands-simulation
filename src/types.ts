@@ -7,3 +7,5 @@ export type MemoryCell = {
   address: number;
   value: number;
 };
+
+export type AddressingMode = 'BX' | 'BP' | 'SI' | 'DI' | 'BX+SI' | 'BX+DI' | 'BP+SI' | 'BP+DI';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type Registers, type MemoryCell } from './types';
+import { type Registers, type MemoryCell, type AddressingMode } from './types';
 import './App.css';
 import { GeneralPurpose } from './GeneralPurpose';
 import { AddresingAndIndex } from './AddresingAndIndex';
@@ -8,7 +8,7 @@ import { Stack } from './Stack';
 import { toHex } from './utils/toHex';
 import { parseHex } from './utils/parseHex';
 import { MemoryGrid } from './MemoryGrid';
-// import { calculateEffectiveAddress } from './utils/calculateEffectiveAddress';
+import { calculateEffectiveAddress } from './utils/calculateEffectiveAddress';
 
 function App() {
   const [regs, setRegs] = useState<Registers>({
@@ -26,7 +26,7 @@ function App() {
 
   const [stack, setStack] = useState<number[]>([]);
 
-  // const [movXchgValue, setMovXchgValue] = useState<number>(0); 
+  const [selectedAddrMode, setSelectedAddrMode] = useState<AddressingMode>('BX');
 
   const [selectedMovSourceReg, setSelectedMovSourceReg] = useState<keyof Registers>('AX');
   const [selectedMovTargetReg, setSelectedMovTargetReg] = useState<keyof Registers>('BX');
@@ -43,7 +43,7 @@ function App() {
   };
 
   const executeMovRegToReg = (target: keyof Registers, source: keyof Registers) => {
-    setRegs(prev => ({ ...prev, [target]: prev[source], [source]: 0 }));
+    setRegs(prev => ({ ...prev, [target]: prev[source] }));
     log(`MOV ${target}, ${source} (Val: ${toHex(regs[source])})`);
   };
 
@@ -56,22 +56,21 @@ function App() {
     log(`XCHG ${r1}, ${r2}`);
   };
 
-  const executeMovMemToReg = (target: keyof Registers, addrMode: string) => {
-    const ea = (regs.BX + displacement) % 64;
+const executeMovMemToReg = (target: keyof Registers, mode: AddressingMode) => {
+    const ea = calculateEffectiveAddress(mode, displacement, regs);
     const memVal = memory.find(m => m.address === ea)?.value || 0;
-    
     setRegs(prev => ({ ...prev, [target]: memVal }));
-    log(`MOV ${target}, [${addrMode}] (Addr: ${toHex(ea)}, Val: ${toHex(memVal)})`);
+    log(`MOV ${target}, [${mode}+Disp] (Addr: ${toHex(ea)}, Val: ${toHex(memVal)})`);
   };
 
-  const executeMovRegToMem = (source: keyof Registers) => {
-    const ea = (regs.BX + displacement) % 64; // Przykład dla BX
+const executeMovRegToMem = (source: keyof Registers, mode: AddressingMode) => {
+    const ea = calculateEffectiveAddress(mode, displacement, regs);
     const val = regs[source];
-    
     setMemory(prev => prev.map(cell => 
       cell.address === ea ? { ...cell, value: val } : cell
     ));
-    log(`MOV [BX+Disp], ${source} (Addr: ${toHex(ea)}, Val: ${toHex(val)})`);
+
+    log(`MOV [${mode}+Disp], ${source} (Addr: ${toHex(ea)}, Val: ${toHex(val)})`);
   };
 
   const executePush = (reg: keyof Registers) => {
@@ -110,9 +109,7 @@ function App() {
           <h2>Operations</h2>
           <h3>Commands Simulation</h3>
           <CommandsSimulation 
-            regs={regs} 
-            selectedReg={selectedMovSourceReg} 
-            setSelectedReg={setSelectedMovSourceReg}
+            regs={regs}
             selectedMovSourceReg={selectedMovSourceReg}
             setSelectedMovSourceReg={setSelectedMovSourceReg}
             selectedMovTargetReg={selectedMovTargetReg}
@@ -121,6 +118,8 @@ function App() {
             setSelectedXchgSourceReg={setSelectedXchgSourceReg}
             selectedXchgTargetReg={selectedXchgTargetReg}
             setSelectedXchgTargetReg={setSelectedXchgTargetReg}
+            selectedAddresingMode={selectedAddrMode}
+            setSelectedAddresingMode={setSelectedAddrMode}
             movRegs={movRegs}
             executeMovRegToReg={executeMovRegToReg}
             executeXchgRegReg={executeXchgRegReg} 
@@ -149,7 +148,7 @@ function App() {
         <div className="panel">
           <h2>Memory & Stack</h2>
           <h3>RAM (0x00 - 0x3F)</h3>
-          <MemoryGrid memory={memory as MemoryCell[]} regs={regs} displacement={displacement} />
+          <MemoryGrid memory={memory} regs={regs} displacement={displacement} />
 
           <h3 style={{marginTop: '20px'}}>Stack (LIFO)</h3>
           <div style={{display: 'flex', flexDirection: 'column-reverse', gap: '2px', height: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px'}}>

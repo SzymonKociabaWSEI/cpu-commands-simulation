@@ -1,7 +1,13 @@
 import type { MemoryCell, Registers } from "./types";
 import { toHex } from "./utils/toHex";
 
-export function MemoryGrid(memory: MemoryCell[], regs: Registers, displacement: number) {
+export function MemoryGrid(props: {
+  memory: MemoryCell[], 
+  regs: Registers, 
+  displacement: number}
+) {
+  const { memory, regs, displacement } = props;
+  
   const memoryCells = memory.map((m) => {
         const isTargeted = m.address === ((regs.BX + displacement) % 64);
         return (

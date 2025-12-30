@@ -1,15 +1,18 @@
-import type { MemoryCell, Registers } from "./types";
+import type { AddressingMode, MemoryCell, Registers } from "./types";
+import { calculateEffectiveAddress } from "./utils/calculateEffectiveAddress";
 import { toHex } from "./utils/toHex";
 
 export function MemoryGrid(props: {
   memory: MemoryCell[], 
   regs: Registers, 
-  displacement: number}
-) {
-  const { memory, regs, displacement } = props;
+  displacement: number,
+  selectedAddrMode: AddressingMode
+}) {
+  const { memory, regs, displacement, selectedAddrMode } = props;
   
   const memoryCells = memory.map((m) => {
-        const isTargeted = m.address === ((regs.BX + displacement) % 64);
+        const address = calculateEffectiveAddress(selectedAddrMode, displacement, regs);
+        const isTargeted = m.address === address;
         return (
           <div 
             key={m.address} 

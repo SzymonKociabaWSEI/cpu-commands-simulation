@@ -148,7 +148,7 @@ const executeMovRegToMem = (source: keyof Registers, mode: AddressingMode) => {
         <div className="panel">
           <h2>Memory & Stack</h2>
           <h3>RAM (0x00 - 0x3F)</h3>
-          <MemoryGrid memory={memory} regs={regs} displacement={displacement} />
+          <MemoryGrid memory={memory} regs={regs} displacement={displacement} selectedAddrMode={selectedAddrMode} />
 
           <h3 style={{marginTop: '20px'}}>Stack (LIFO)</h3>
           <div style={{display: 'flex', flexDirection: 'column-reverse', gap: '2px', height: '150px', overflowY: 'auto', border: '1px solid #333', padding: '5px'}}>
